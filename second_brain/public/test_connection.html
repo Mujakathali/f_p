@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend-Backend Connection Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            background: #f9f9f9;
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .error {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .info {
+            color: #3b82f6;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .status.ok {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.fail {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 MemoryGraph AI - Connection Diagnostics</h1>
+        
+        <div class="test-section">
+            <h2>1. Backend Health Check</h2>
+            <button onclick="testBackendHealth()">Test Backend</button>
+            <div id="backend-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. Authentication Status</h2>
+            <button onclick="checkAuth()">Check Auth Token</button>
+            <div id="auth-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. Test Memory Creation</h2>
+            <button onclick="testMemoryCreation()">Create Test Memory</button>
+            <div id="memory-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. Test Memory Search</h2>
+            <button onclick="testMemorySearch()">Search Memories</button>
+            <div id="search-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. Run All Tests</h2>
+            <button onclick="runAllTests()">Run Complete Test Suite</button>
+            <div id="all-tests-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        async function testBackendHealth() {
+            const resultDiv = document.getElementById('backend-result');
+            resultDiv.innerHTML = '<p class="info">Testing backend connection...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Backend is running!</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ Backend returned error: ${response.status}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Cannot connect to backend!</p>
+                    <p>Make sure backend is running on port 8000</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        function checkAuth() {
+            const resultDiv = document.getElementById('auth-result');
+            const token = localStorage.getItem('access_token');
+            const user = localStorage.getItem('user');
+            
+            if (token) {
+                resultDiv.innerHTML = `
+                    <p class="success">✅ Authentication token found!</p>
+                    <p><strong>Token:</strong> ${token.substring(0, 30)}...</p>
+                    ${user ? `<p><strong>User:</strong></p><pre>${JSON.stringify(JSON.parse(user), null, 2)}</pre>` : ''}
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ No authentication token found!</p>
+                    <p>Please login first at <a href="/login">http://localhost:3000/login</a></p>
+                `;
+            }
+        }
+
+        async function testMemoryCreation() {
+            const resultDiv = document.getElementById('memory-result');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p class="error">❌ Please login first!</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Creating test memory...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/add_memory`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        text: `Test memory created at ${new Date().toLocaleString()}`,
+                        metadata: { source: 'diagnostic_test' }
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Memory created successfully!</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Failed to create memory!</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Request failed!</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function testMemorySearch() {
+            const resultDiv = document.getElementById('search-result');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<p class="error">❌ Please login first!</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p class="info">Searching memories...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/search_memories?query=test&limit=5`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const count = data.memories ? data.memories.length : 0;
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Search completed!</p>
+                        <p><strong>Found ${count} memories</strong></p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Search failed!</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Request failed!</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        async function runAllTests() {
+            const resultDiv = document.getElementById('all-tests-result');
+            resultDiv.innerHTML = '<h3>Running all tests...</h3>';
+            
+            let results = [];
+            
+            // Test 1: Backend Health
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                results.push({
+                    test: 'Backend Health',
+                    status: response.ok ? 'PASS' : 'FAIL',
+                    details: response.ok ? 'Backend is running' : `Status: ${response.status}`
+                });
+            } catch (error) {
+                results.push({
+                    test: 'Backend Health',
+                    status: 'FAIL',
+                    details: 'Cannot connect to backend'
+                });
+            }
+            
+            // Test 2: Auth Token
+            const token = localStorage.getItem('access_token');
+            results.push({
+                test: 'Authentication Token',
+                status: token ? 'PASS' : 'FAIL',
+                details: token ? 'Token found in localStorage' : 'No token found - login required'
+            });
+            
+            // Test 3: Memory Creation (only if token exists)
+            if (token) {
+                try {
+                    const response = await fetch(`${API_BASE}/add_memory`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            text: 'Diagnostic test memory',
+                            metadata: { source: 'test' }
+                        })
+                    });
+                    
+                    results.push({
+                        test: 'Memory Creation',
+                        status: response.ok ? 'PASS' : 'FAIL',
+                        details: response.ok ? 'Memory created successfully' : `Status: ${response.status}`
+                    });
+                } catch (error) {
+                    results.push({
+                        test: 'Memory Creation',
+                        status: 'FAIL',
+                        details: error.message
+                    });
+                }
+                
+                // Test 4: Memory Search
+                try {
+                    const response = await fetch(`${API_BASE}/search_memories?query=test&limit=5`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    results.push({
+                        test: 'Memory Search',
+                        status: response.ok ? 'PASS' : 'FAIL',
+                        details: response.ok ? 'Search completed' : `Status: ${response.status}`
+                    });
+                } catch (error) {
+                    results.push({
+                        test: 'Memory Search',
+                        status: 'FAIL',
+                        details: error.message
+                    });
+                }
+            } else {
+                results.push({
+                    test: 'Memory Creation',
+                    status: 'SKIP',
+                    details: 'No auth token'
+                });
+                results.push({
+                    test: 'Memory Search',
+                    status: 'SKIP',
+                    details: 'No auth token'
+                });
+            }
+            
+            // Display results
+            let html = '<h3>Test Results:</h3>';
+            results.forEach(result => {
+                const statusClass = result.status === 'PASS' ? 'ok' : 'fail';
+                html += `
+                    <div style="margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+                        <strong>${result.test}</strong>
+                        <span class="status ${statusClass}">${result.status}</span>
+                        <p style="margin: 5px 0 0 0; color: #666;">${result.details}</p>
+                    </div>
+                `;
+            });
+            
+            const passCount = results.filter(r => r.status === 'PASS').length;
+            const totalCount = results.filter(r => r.status !== 'SKIP').length;
+            
+            html += `<h3>Summary: ${passCount}/${totalCount} tests passed</h3>`;
+            
+            resultDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
