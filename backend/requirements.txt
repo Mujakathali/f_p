@@ -1,0 +1,50 @@
+# FastAPI and web server dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# Database dependencies
+asyncpg==0.29.0
+neo4j==5.15.0
+chromadb==0.4.18
+
+# NLP and ML dependencies
+spacy==3.7.2
+transformers==4.36.2
+torch==2.1.1
+sentence-transformers==2.2.2
+scikit-learn==1.3.2
+
+# Audio processing dependencies
+openai-whisper==20231117
+librosa==0.10.1
+soundfile==1.0.4
+
+# Image processing dependencies
+pytesseract==0.3.10
+Pillow==10.1.0
+opencv-python==4.8.1.78
+
+# Utility dependencies
+numpy==1.24.4
+pandas==2.1.4
+requests==2.31.0
+aiofiles==23.2.0
+
+# Gemini AI
+google-generativeai==0.3.2
+
+# Authentication dependencies
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+
+# Development dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+flake8==6.1.0
+
+# Additional ML models (download separately)
+# python -m spacy download en_core_web_sm

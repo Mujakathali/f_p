@@ -1,0 +1,52 @@
+# --- Secrets / local env ---
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+backend/**/.env
+second_brain/.env
+second_brain/.env.*
+ 
+.env
+backend/.env
+
+
+# --- Node / React ---
+**/node_modules/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.pnp
+**/.pnp.js
+
+# --- Python ---
+**/__pycache__/
+**/*.py[cod]
+**/*.pyd
+**/.Python
+backend/venv/
+backend/.venv/
+**/.venv/
+**/pip-wheel-metadata/
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- App generated data ---
+backend/uploads/
+backend/temp/
+backend/.pytest_cache/
+backend/.mypy_cache/
+**/.cache/
+
+# --- Databases / local volumes (if any get created as folders) ---
+postgres_data/
+neo4j_data/
+neo4j_logs/
+
+# --- Optional: exclude local LLM vendor folder if not needed ---
+mistral_local/

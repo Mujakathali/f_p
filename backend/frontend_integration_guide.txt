@@ -1,0 +1,237 @@
+# Frontend-Backend Integration Flow
+
+## 🎯 Current System Architecture
+
+Your system now has **TWO** parallel processing pipelines:
+
+### 1. **Legacy Memory System** (Original)
+- **Endpoints**: `/api/v1/memories/*`
+- **Storage**: PostgreSQL + ChromaDB + Neo4j
+- **Features**: NLP processing, entity extraction, graph relationships
+
+### 2. **New Multimodal System** (Enhanced)
+- **Endpoints**: `/api/v1/multimodal/*`
+- **Storage**: FAISS vector indexes + metadata files
+- **Features**: Advanced semantic search across text, audio, images
+
+## 📊 Frontend Input Processing Flow
+
+### **TEXT INPUT**
+```javascript
+// Frontend: User types text
+const text = "Machine learning is amazing";
+
+// Option 1: Legacy system
+api.addMemory(text, metadata)
+→ POST /api/v1/add_memory
+→ NLP processing (entities, sentiment)
+→ PostgreSQL storage
+→ ChromaDB embeddings
+→ Neo4j graph relationships
+
+// Option 2: New multimodal system
+api.request('/multimodal/add_text', {
+  method: 'POST',
+  body: JSON.stringify({text, metadata})
+})
+→ POST /api/v1/multimodal/add_text
+→ SentenceTransformer embedding
+→ FAISS vector index
+→ Fast semantic search
+```
+
+### **IMAGE INPUT**
+```javascript
+// Frontend: User uploads image
+const imageFile = event.target.files[0];
+
+// Option 1: Legacy system
+api.addImageMemory(imageFile, metadata)
+→ POST /api/v1/add_image_memory
+→ OCR text extraction (EasyOCR/Tesseract)
+→ CLIP embeddings
+→ PostgreSQL + ChromaDB storage
+
+// Option 2: New multimodal system
+const formData = new FormData();
+formData.append('image_file', imageFile);
+fetch('/api/v1/multimodal/add_image', {
+  method: 'POST',
+  body: formData
+})
+→ POST /api/v1/multimodal/add_image
+→ OCR + CLIP visual embeddings
+→ FAISS vector storage
+→ Cross-modal search capability
+```
+
+### **AUDIO INPUT**
+```javascript
+// Frontend: User uploads audio
+const audioFile = event.target.files[0];
+
+// Option 1: Legacy system
+api.addVoiceMemory(audioFile, metadata)
+→ POST /api/v1/add_voice_memory
+→ Whisper transcription
+→ NLP processing
+→ PostgreSQL + ChromaDB storage
+
+// Option 2: New multimodal system
+const formData = new FormData();
+formData.append('audio_file', audioFile);
+fetch('/api/v1/multimodal/add_audio', {
+  method: 'POST',
+  body: formData
+})
+→ POST /api/v1/multimodal/add_audio
+→ Whisper transcription
+→ Text embeddings
+→ FAISS audio index
+```
+
+## 🔍 Search Flow
+
+### **Semantic Search**
+```javascript
+// Frontend: User searches
+const query = "neural networks";
+
+// Legacy system
+api.searchMemories(query, limit)
+→ GET /api/v1/search_memories
+→ ChromaDB similarity search
+→ PostgreSQL metadata retrieval
+
+// New multimodal system
+fetch('/api/v1/multimodal/search?query=' + query)
+→ GET /api/v1/multimodal/search
+→ FAISS similarity search across:
+  - Text embeddings
+  - Image visual + OCR embeddings
+  - Audio transcription embeddings
+→ Unified cross-modal results
+```
+
+## 🏗️ Backend Processing Pipeline
+
+### **When Frontend Sends Data:**
+
+1. **FastAPI receives request** at `app.py`
+2. **Route handler** processes the input:
+   - `/api/v1/*` → Legacy memory routes
+   - `/api/v1/multimodal/*` → New multimodal routes
+3. **Model processing**:
+   - Text → SentenceTransformer embeddings
+   - Images → OCR + CLIP embeddings
+   - Audio → Whisper → text embeddings
+4. **Storage**:
+   - Legacy: PostgreSQL + ChromaDB + Neo4j
+   - New: FAISS indexes + pickle metadata
+5. **Response** back to frontend
+
+## 📱 Frontend Usage Examples
+
+### **Complete Text Flow**
+```javascript
+// Add text
+const result = await api.request('/multimodal/add_text', {
+  method: 'POST',
+  body: JSON.stringify({
+    text: "Deep learning revolutionizes AI",
+    metadata: {category: "AI", importance: "high"}
+  })
+});
+
+// Search text
+const searchResults = await fetch('/api/v1/multimodal/search?query=artificial intelligence&top_k=10');
+```
+
+### **Complete Image Flow**
+```javascript
+// Add image
+const formData = new FormData();
+formData.append('image_file', imageFile);
+formData.append('metadata', JSON.stringify({category: "diagram"}));
+
+const uploadResult = await fetch('/api/v1/multimodal/add_image', {
+  method: 'POST',
+  body: formData
+});
+
+// Search images
+const imageSearch = await fetch('/api/v1/multimodal/search?query=machine learning&search_types=image');
+```
+
+### **Complete Audio Flow**
+```javascript
+// Add audio
+const formData = new FormData();
+formData.append('audio_file', audioFile);
+
+const audioResult = await fetch('/api/v1/multimodal/add_audio', {
+  method: 'POST',
+  body: formData
+});
+
+// Search audio
+const audioSearch = await fetch('/api/v1/multimodal/search?query=neural networks&search_types=audio');
+```
+
+## 🎯 Recommended Frontend Integration
+
+### **Update your API service:**
+```javascript
+// Add to api.js
+async addMultimodalText(text, metadata = {}) {
+  return this.request('/multimodal/add_text', {
+    method: 'POST',
+    body: JSON.stringify({text, metadata})
+  });
+}
+
+async addMultimodalImage(imageFile, metadata = {}) {
+  const formData = new FormData();
+  formData.append('image_file', imageFile);
+  formData.append('metadata', JSON.stringify(metadata));
+  
+  return this.request('/multimodal/add_image', {
+    method: 'POST',
+    headers: {}, // Remove Content-Type for FormData
+    body: formData
+  });
+}
+
+async addMultimodalAudio(audioFile, metadata = {}) {
+  const formData = new FormData();
+  formData.append('audio_file', audioFile);
+  formData.append('metadata', JSON.stringify(metadata));
+  
+  return this.request('/multimodal/add_audio', {
+    method: 'POST',
+    headers: {},
+    body: formData
+  });
+}
+
+async searchMultimodal(query, searchTypes = null, topK = 10) {
+  const params = new URLSearchParams({
+    query,
+    top_k: topK
+  });
+  
+  if (searchTypes) {
+    params.append('search_types', searchTypes.join(','));
+  }
+  
+  return this.request(`/multimodal/search?${params}`);
+}
+```
+
+## 🚀 System Status
+
+**Current State**: Both systems are running in parallel
+- **Legacy system**: Full NLP + graph relationships
+- **New system**: Advanced multimodal semantic search
+
+**Recommendation**: Use the new multimodal system for better semantic search performance with FAISS vector storage.
